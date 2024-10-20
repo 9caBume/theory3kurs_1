@@ -30,7 +30,7 @@ public:
     
     virtual void printInfo() const
     {
-        cout << fullName;
+        cout << fullName << " ";
     }
 };
 
@@ -39,7 +39,7 @@ class Student : public Person
 public:
     string groupNumber;
     string specialty;
-    string curr_course;//new kurs
+    string curr_course;
     string averageScore;
 
     Student(const string& name, const string& group, const string& spec, const string& curr, const string& score)
@@ -51,6 +51,7 @@ public:
     
     void saveToFile(ofstream& file) const override 
     {
+        file << "Student" << endl;
         Person::saveToFile(file);
         file << groupNumber << endl;
         file << specialty << endl;
@@ -71,7 +72,7 @@ public:
     void printInfo() const
     {
         Person::printInfo();
-        cout << groupNumber << endl;
+        cout << groupNumber << " " << specialty << " " << curr_course << " " << averageScore;
     }
 };
 
@@ -79,12 +80,12 @@ class Teacher : public Person
 {
 public:
     string disciplines;
-    int totalStudents;
+    string totalStudents;
 
 
-    Teacher(const string& name, const string& disciplinesList, int students)
+    Teacher(const string& name, const string& disciplinesList, const string& students)
             : Person(name), disciplines(disciplinesList), totalStudents(students) {}
-    Teacher() : Person(), disciplines("Пусто"), totalStudents(0) {}
+    Teacher() : Person(), disciplines("Пусто"), totalStudents("0") {}
     Teacher(const Teacher& other) : Person(other), disciplines(other.disciplines), totalStudents(other.totalStudents) {}
     ~Teacher() {}
     
@@ -101,6 +102,12 @@ public:
         getline(file, disciplines);
         file >> totalStudents;
         file.ignore();
+    }
+    
+    void printInfo() const
+    {
+        Person::printInfo();
+        cout << disciplines << " " << totalStudents;
     }
 };
 
@@ -133,6 +140,12 @@ public:
         file >> borders;
         file.ignore();
     }
+    
+    void printInfo() const
+    {
+        Person::printInfo();
+        cout << departmentName << " " << telephone << " " << borders;
+    }
 };
 
 class VUZ : public DepartmentHead, public Teacher, public Student
@@ -144,22 +157,18 @@ class VUZ : public DepartmentHead, public Teacher, public Student
     {
         va_list mas;
         int size;
-        
+        va_start(mas, tip);
         if (tip == "Student")
         {
-            va_start(mas, tip);
-            string n = va_arg(mas, string); 
-            obj = new Student(va_arg(mas, string), va_arg(mas, string), va_arg(mas, string), va_arg(mas, string), va_arg(mas, string));
+            obj = new Student(va_arg(mas, const char*), va_arg(mas, const char*), va_arg(mas, const char*), va_arg(mas, const char*), va_arg(mas, const char*));
         }
         else if (tip == "Teacher")
         {
-            obj = new Teacher;
-            size = 3;
+            obj = new Teacher(va_arg(mas, const char*), va_arg(mas, const char*), va_arg(mas, const char*));
         }
-        else if (tip == "Dep")
+        else if (tip == "DepartmentHead")
         {
-            obj = new DepartmentHead;
-            size = 4;
+            obj = new DepartmentHead(va_arg(mas, const char*), va_arg(mas, const char*), va_arg(mas, const char*), va_arg(mas, const char*));
         }
         
     }
@@ -176,7 +185,7 @@ private:
 
 public:
     
-    Keeper() : data(new VUZ[10]), capacity(10), size(0) {}
+    Keeper() : data(new VUZ[1]), capacity(1), size(0) {}
 
     
     Keeper(size_t initialCapacity, string typee) : data(new VUZ[initialCapacity]), capacity(initialCapacity), size(0) {}
@@ -203,41 +212,48 @@ public:
     
     void erase(size_t index) {
         if (index >= size) {
-            throw std::out_of_range("Index out of bounds");
+            throw out_of_range("Index out of bounds");
         }
 
         
         for (size_t i = index; i < size - 1; i++) {
             data[i] = data[i + 1];
         }
+        capacity--;
         size--;
     }
 
     
-    VUZ& operator[](size_t index) {
-        if (index >= size) {
+    VUZ& operator[](size_t index) 
+    {
+        if (index >= size) 
+        {
             throw std::out_of_range("Index out of bounds");
         }
         return data[index];
     }
 
     
-    bool empty() const {
+    bool empty() const 
+    {
         return size == 0;
     }
 
     
-    size_t getSize() const {
+    size_t getSize() const 
+    {
         return size;
     }
 
     
-    void resize(size_t newCapacity) {
+    void resize(size_t newCapacity) 
+    {
         
         VUZ* newData = new VUZ[newCapacity];
 
         
-        for (size_t i = 0; i < size; i++) {
+        for (size_t i = 0; i < size; i++) 
+        {
             newData[i] = data[i];
         }
 
@@ -249,21 +265,113 @@ public:
         capacity = newCapacity;
     }
     
-    void printInfo() const
+    void prints() const
     {
         for(int i =0; i < capacity; ++i)
         {
             cout << data[i].typ << ": ";
             data[i].obj->printInfo();
+            cout << endl;
         }
+    }
+    
+    void load(string f) const
+    {
+        ifstream out;
+        out.open(f);
+        for(int i = 0; i < capacity; ++i)
+        {
+            data[i].obj->loadFromFile(out);
+        }
+        out.close();
+    }
+    
+    void save(string f) const
+    {
+        ofstream in;
+        in.open(f);
+        for(int i = 0; i < capacity; ++i)
+        {
+            data[i].obj->saveToFile(out);
+        }
+        in.close();
     }
 };
 
 int main() 
 {
     Keeper baza;
-    VUZ vanya("Student", "1243", "Worker", "3", "4.2");
-    baza.add(vanya);
-    baza.printInfo();
+    string k1, k2, k3, k4, k5;
+    string v;
+    string n2;
+    for(;;)
+    {
+        cout << "Введите: 1 - Добавить, 2 - Просмотреть, 3 - Удалить, 4 - Загрузка с файла, 5 - Сохранение, Остальное - Выйти" << endl;
+        int n;
+        cin >> n;
+        switch(n)
+        {
+            case 1:
+                cout << "1 - Студент, 2 - Учитель, 3 - Департментнтнт" << endl;
+                cin >> n2;
+                if (n2 == "1")
+                {
+                    cout << "Введите имя" << endl;
+                    cin >> k1;
+                    cout << "Введите номер группы" << endl;
+                    cin >> k2;
+                    cout << "Введите специальность" << endl;
+                    cin >> k3;
+                    cout << "Введите текущий курс" << endl;
+                    cin >> k4;
+                    cout << "Введите средний балл" << endl;
+                    cin >> k5;
+                    VUZ temp("Student", k1.c_str(), k2.c_str(), k3.c_str(), k4.c_str(), k5.c_str());
+                    baza.add(temp);
+                }
+                
+                else if (n2 == "2")
+                {
+                    cout << "Введите имя" << endl;
+                    cin >> k1;
+                    cout << "Введите дисциплины" << endl;
+                    cin >> k2;
+                    cout << "Введите количество студентов" << endl;
+                    cin >> k3;
+                    VUZ temp("Teacher", k1.c_str(), k2.c_str(), k3.c_str());
+                    baza.add(temp);
+                }
+                else if (n2 == "3")
+                {
+                    cout << "Введите имя" << endl;
+                    cin >> k1;
+                    cout << "Введите должность" << endl;
+                    cin >> k2;
+                    cout << "Введите телефон" << endl;
+                    cin >> k3;
+                    cout << "Введите область ответственности" << endl;
+                    cin >> k4;
+                    VUZ temp("DepartmentHead", k1.c_str(), k2.c_str(), k3.c_str(), k4.c_str());
+                    baza.add(temp);
+                }
+                break;
+            case 2:
+                baza.prints();
+                break;
+            case 3:
+                cout << "Введите индекс, который удалить" << endl;
+                cin >> n2;
+                baza.erase(stoi(n2));
+                break;
+            case 4:
+                baza.load("qwerty");
+                break;
+            case 5:
+                baza.save("qwerty");
+            default:
+                cout << "Пока!";
+                return 0;
+        }
+    }
     return 0;
 }
